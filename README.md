@@ -13,14 +13,14 @@
 
 #### Install Python Virtual Environment
 
-- Create a virtuel environment: `python3 -m venv win_venv`
+- Create a virtuel environment: `python -m venv win_venv`
 - Activate the virtual environment: `.\win_venv\Scripts\activate`
 - Install traci: `pip install traci`
 - Exit the virtual environment (`deactivate`)
 
 #### Copy Files
 
-- Move the content of the `ExternalData` folder into the persistent storage
+- Copy the content of the `ExternalData` folder from the repository into the persistent storage
 
 ### MacOS 
 
