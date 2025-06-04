@@ -7,85 +7,96 @@ using System.Collections;
 using UnityEngine;
 using TMPro;
 
-public class SumoParser : MonoBehaviour
+public class SumoSimulationParser : MonoBehaviour
 {
-    public TextMeshProUGUI uiText;
-    public (double, double)[,] positions;
+    static public TextMeshProUGUI uiText;
+    static (double, double)[,] positions;
+    static string simulationName;
+    static string outputPath;
 
-    // Will be fetched dynamically in future
-    // TODO
-    string simulationName = "2025-05-06-18-46-49";
-    string outputPath;
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public (double, double)[,] Parse(string simulationName)
     {
+        SumoSimulationParser.simulationName = simulationName;
         outputPath = Path.Combine(Application.persistentDataPath, "SumoOutput", simulationName, "parser.output.xml");
-        uiText.SetText("Starting!");
         ReadSimulation();
         ReadOutput();
-        uiText.text = "Finished!";
+        return positions;
     }
 
     // Starts a python script to read the given simulation
-    void ReadSimulation()
+    static void ReadSimulation()
     {
         // Update UI
         UnityEngine.Debug.Log("Reading simulation ...");
-        uiText.text = "Reading Simulation ...";
         
         UnityEngine.Debug.Log("Persistent Data Path: " + Application.persistentDataPath);
 
-        // Create paths to call python script
-        string pythonvenvPath = Path.Combine(Application.persistentDataPath, "win_venv", "Scripts", "activate.ps1");
-        string pythonScriptPath = Path.Combine(Application.persistentDataPath, "SumoParserHelper.py");
-        pythonvenvPath = $"\"{pythonvenvPath}\"";
-        pythonScriptPath = $"\"{pythonScriptPath}\"";
-        string scriptArguments = $"{pythonScriptPath} \"{Application.persistentDataPath}\" \"{simulationName}\"";
+        // Paths
+        string venvPythonExecutablePath = Path.Combine(Application.persistentDataPath, "win_venv", "Scripts", "python.exe");
+        string pythonScriptToExecutePath = Path.Combine(Application.persistentDataPath, "SumoParserHelper.py");
 
-        // Create a new process
-        ProcessStartInfo start = new ProcessStartInfo
+        // Arguments for your SumoParserHelper.py script:
+        // Ensure paths with spaces are quoted for command-line arguments.
+        string scriptArguments = $"\"{pythonScriptToExecutePath}\" \"{Application.persistentDataPath}\" \"{simulationName}\"";
+
+        // Ensure the Python executable path itself is quoted if it might contain spaces,
+        // though typically Application.persistentDataPath doesn't have spaces unless the user's name does.
+        // For safety, quoting it is good practice if passing directly to an OS process.
+        // However, when setting ProcessStartInfo.FileName, quotes are often handled differently
+        // or not needed if UseShellExecute is false. For direct executable paths, it's usually fine without.
+
+        UnityEngine.Debug.Log($"Attempting to run: {venvPythonExecutablePath} with arguments: {scriptArguments}");
+        
+        // Create a new process to directly call the venv's python.exe
+        ProcessStartInfo startInfo = new ProcessStartInfo
         {
+            FileName = venvPythonExecutablePath, // Directly use the python.exe from your venv
+            Arguments = scriptArguments,          // Pass your script and its arguments
             RedirectStandardOutput = true,
-            RedirectStandardInput = true,
             RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            FileName = "powershell",
+            UseShellExecute = false,              // Crucial: avoids shell interference
+            CreateNoWindow = true
         };
 
         // Start the process
-        var process = Process.Start(start);
-
-        // Activate the python venv and execute the python script
-        using var sw = process.StandardInput;
-        if (sw.BaseStream.CanWrite)
+        Process process = new Process
         {
-            sw.WriteLine($"& {pythonvenvPath}");
-            sw.WriteLine($"python {scriptArguments}");
-            sw.Flush();
-            sw.Close();
-        }
+            StartInfo = startInfo
+        };
 
-        // Log output and errors
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        if (error != "")
+        try
         {
-            UnityEngine.Debug.LogError("Python script errors: " + error);
-        }
-        UnityEngine.Debug.Log("Python script output: " + output);
+            process.Start();
 
-        // Update UI
-        UnityEngine.Debug.Log("Finished reading simulation!");
-        uiText.text = "Finished reading simulation!";
+            // Best practice: Read output/error asynchronously or in a way that doesn't deadlock.
+            // For simplicity, synchronous read is shown here, but consider async for long tasks.
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+
+            process.WaitForExit(); // Wait for the process to complete
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                UnityEngine.Debug.LogError("Python script errors: " + error);
+            }
+            UnityEngine.Debug.Log("Python script output: " + output);
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError($"Failed to start Python process: {ex.Message}");
+            UnityEngine.Debug.LogError($"Attempted to run: {startInfo.FileName} {startInfo.Arguments}");
+            // Log more details if needed, e.g., if the python.exe wasn't found
+            if (!File.Exists(venvPythonExecutablePath))
+            {
+                UnityEngine.Debug.LogError($"Python executable not found at: {venvPythonExecutablePath}");
+            }
+        }
     }
 
-    void ReadOutput()
+    static void ReadOutput()
     {
         // Update UI
         UnityEngine.Debug.Log("Reading output ...");
-        uiText.text = "Reading output ...";
 
         // Load XML document
         XmlDocument output = new XmlDocument();
@@ -97,7 +108,7 @@ public class SumoParser : MonoBehaviour
         int numberOfVehicles = int.Parse(root.Attributes["vehicles"].Value);
 
         // Create array of appropriate size
-        (double, double)[,] positions = new (double, double)[numberOfSteps, numberOfVehicles];
+        positions = new (double, double)[numberOfSteps, numberOfVehicles];
 
         // Fill array with positional values from XML doc
         foreach (XmlNode step in root.ChildNodes)
@@ -116,6 +127,5 @@ public class SumoParser : MonoBehaviour
 
         // Update UI
         UnityEngine.Debug.Log("Finished reading output!");
-        uiText.text = "Finished reading output!";
     }
 }
