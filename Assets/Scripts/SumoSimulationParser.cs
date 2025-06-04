@@ -62,7 +62,7 @@ public class SumoParser : MonoBehaviour
         if (sw.BaseStream.CanWrite)
         {
             sw.WriteLine($"& {pythonvenvPath}");
-            sw.WriteLine($"python3 {scriptArguments}");
+            sw.WriteLine($"python {scriptArguments}");
             sw.Flush();
             sw.Close();
         }
