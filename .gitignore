@@ -2,6 +2,8 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
+  
+
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/
@@ -85,4 +87,3 @@ crashlytics-build.properties
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
 
 .DS_Store
-ExternalData/SumoOutput/2025-05-06-18-46-49/edgeData.xml
