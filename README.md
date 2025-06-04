@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-- Python 3 is installed
+- Python is installed
 - SUMO is installed and is on PATH
 
 ### Windows
