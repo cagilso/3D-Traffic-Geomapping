@@ -7,33 +7,35 @@ public class CarManager : MonoBehaviour
     public GameObject carPrefab;
     private bool carsLoaded = false;
     private int step = 0;
-    private (double, double)[,] positions;
+    private List<(double, double)[]> positions;
 
     void Update()
     {
         if (!carsLoaded)
             return;
 
-        if (step > positions.GetLength(0))
+        if (step > positions.Count)
             return;
 
-        for (int i = 0; i < positions.GetLength(1); i++)
+        for (int vehId = 0; vehId < positions[step].Length; vehId++)
         {
-            entities[i].transform.position = new Vector3((float)positions[step, i].Item1, (float)0.5, (float)positions[step, i].Item2);
+            float x_pos = (float) positions[step][vehId].Item1;
+            float y_pos = (float) 0.5;
+            float z_pos = (float) positions[step][vehId].Item2;
+            entities[vehId].transform.position = new Vector3(x_pos, y_pos, z_pos);
 
-            if (!((float)positions[step, i].Item1 == 0) && !((float)positions[step, i].Item2 == 0))
-                UnityEngine.Debug.Log($"Step {step}, vehicle {i}: ({(float)positions[step, i].Item1}, {(float)positions[step, i].Item2})");
+            if (!(x_pos == 0) && !(z_pos == 0))
+                UnityEngine.Debug.Log($"Step {step}, vehicle {vehId}: ({x_pos}, {z_pos})");
         }
 
         step++;
     }
 
-    public void StartSimulation((double, double)[,] positions)
+    public void StartSimulation(List<(double, double)[]> positions)
     {
 
         this.positions = positions;
-
-        int numberOfCars = positions.GetLength(1);
+        int numberOfCars = positions[0].Length;
         UnityEngine.Debug.Log($"Number of cars: {numberOfCars}");
 
         for (int i = 0; i < numberOfCars; i++)
